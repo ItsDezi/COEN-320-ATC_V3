@@ -56,11 +56,11 @@ public:
 	}
 
 	void printAircraftsInRange(){
-		cout << "//============================START RADAR==================================//"<<endl;
+		cout << "----------------------------START RADAR----------------------------------"<<endl;
 		for(AircraftData aircraft: inRangeAircrafts){
 			cout << "AC" << aircraft.ID << " is in Radar Range."<< endl;
 		}
-		cout << "==============================END RADAR===================================="<<endl;
+		cout << "------------------------------END RADAR--------------------------------------"<<endl;
 	}
 
 
@@ -139,7 +139,11 @@ public:
 
 			//	Send to Computer System once received from all Aircrafts.
 			if ((*activeAircraftsCount) !=0 && aircraftsReceived == (*activeAircraftsCount)){
-				//TODO send it to computer system
+
+				MPData MsgToSend;
+				MsgToSend.channelName = "RADAR-CS";
+				MsgToSend.aircraftsInRange = inRangeAircrafts;
+				radarClient(MsgToSend);
 				printAircraftsInRange(); // TODO: remove it after testing.
 				inRangeAircrafts.clear();
 				aircraftsReceived = 0;

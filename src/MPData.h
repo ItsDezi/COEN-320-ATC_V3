@@ -16,7 +16,7 @@ struct MPData{
 	_pulse hdr;
 	string channelName;
 	AircraftData aircraft;
-	vector<AircraftData> allAircrafts;
+	vector<AircraftData> aircraftsInRange;
 };
 
 #endif
