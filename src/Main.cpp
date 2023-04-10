@@ -9,6 +9,8 @@
 #include "Radar.cpp"
 #include "cTimer.h"
 #include "ComputerSystem.h"
+#include "operatingConsole.h"
+#include "CommSys.cpp"
 
 
 using namespace std;
@@ -22,6 +24,9 @@ struct thread_args {    /* Used as argument to the start routine thread_start() 
 	int period_msec;   //desired period of the thread in milliseconds
 	Radar* RadarPointer;
 	ComputerSystem* ComputerSystemPointer;
+	CommSys* CommuncationSystemPointer;
+	OperatingConsole* OperatorConsolePointer;
+
 
 };
 vector<aircraft> read_input();
@@ -36,7 +41,9 @@ void *thread_start (void *arg) {
 	int period_sec=targs->period_sec;
 	int period_msec=targs->period_msec;
 	Radar ATCRadar = (* targs->RadarPointer);
-	ComputerSystem ATCComputerSystem = (* targs->ComputerSystemPointer);
+	ComputerSystem ATCComputerSystem = (* targs-> ComputerSystemPointer);
+	CommSys ATCCommunicationSystem = (*targs-> CommuncationSystemPointer);
+	OperatingConsole ATCOperatorConsole = (*targs->OperatorConsolePointer);
 
 	int arrival_index = 0;//goes through vector of aircrafts and marks where in the ordered list the program should start aircraft threads
 
@@ -59,7 +66,7 @@ void *thread_start (void *arg) {
 	//=====================================================================================================
 	err_no = pthread_create(&ATCComputerSystem.detectViolationsThread, &attr, ComputerSystem::ComputerSystemDetectViolationsRoutine, &ATCComputerSystem); //create the thread
 	if (err_no != 0){
-		printf("ERROR when creating the ATC Computer System thread \n");
+		printf("ERROR when creating the ATC Computer System detect Violations thread \n");
 	}
 	// Wait to create RADAR-CS channel
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -70,9 +77,34 @@ void *thread_start (void *arg) {
 	if (err_no != 0){
 		printf("ERROR when creating the ATC Radar thread \n");
 	}
-
 	// Wait to create AC-RADAR channel
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+	//====================================COMMUNICATION SYSTEM Thread Create =========================================================
+	//=====================================================================================================
+	err_no = pthread_create(&ATCCommunicationSystem.thread, &attr, CommSys::CommSysThreadRun, &ATCCommunicationSystem); //create the thread
+	if (err_no != 0){
+		printf("ERROR when creating the ATC Communication System thread \n");
+	}
+	//Wait to create COMMSYS-A# channel;
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	//====================================CS Handling CommandsThread  Create =========================================================
+	//=====================================================================================================
+	err_no = pthread_create(&ATCComputerSystem.handlingCommandsThread, &attr, ComputerSystem::HandlingCommands, &ATCComputerSystem); //create the thread
+	if (err_no != 0){
+		printf("ERROR when creating the ATC Computer System Handling Commands thread \n");
+	}
+	//Wait to create CS-COMMSYS channel;
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	//====================================OC Thread  Create =========================================================
+	//=====================================================================================================
+	err_no = pthread_create(&ATCOperatorConsole.thread, &attr, OperatingConsole::run, &ATCOperatorConsole); //create the thread
+	if (err_no != 0){
+		printf("ERROR when creating the ATC Operator Console thread \n");
+	}
+	//Wait to create OC-CS channel;
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 
 	while(true){
 		cout << "==============================================START CLK CYCLE============================================================"<< endl;
@@ -84,9 +116,18 @@ void *thread_start (void *arg) {
 		{
 			int err;
 			cout<<"\n aircraft "<<aircrafts[arrival_index].data.ID<<" thread is being created "<<"at "<<timer.count<<endl;
-			arrivedAircraftsCount++;
+			arrivedAircraftsCount++; // Needed For Radar to know how many aircrafts will receive messages
+			//---------------------------------------Update Position Thread---------------------------------------
 			err = pthread_create(&aircrafts[arrival_index].thread, &attr, aircraft::updatePosition, &aircrafts[arrival_index]);
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			// --------------------------------------Receiving Commands Thread-------------------------------------
+			err_no = pthread_create(&aircrafts[arrival_index].receivingCommandsThread, &attr, aircraft::ReceivingCommandsRoutine, &aircrafts[arrival_index]); //create the thread
+			if (err_no != 0){
+				printf("ERROR when creating the Aircraft 2nd thread \n");
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 			arrival_index++;
 
 			if (err != 0){
@@ -109,6 +150,8 @@ int main (int argc, char* argv[]) {
 	// Initializing ATC Modules
 	Radar ATCRadar = Radar(&arrivedAircraftsCount);
 	ComputerSystem ATCComputerSystem = ComputerSystem();
+	CommSys ATCCommuncationSystem = CommSys();
+	OperatingConsole ATCOperatorConsole = OperatingConsole();
 
 	//input arguments of the thread_start routine
 	struct thread_args targs;
@@ -116,6 +159,8 @@ int main (int argc, char* argv[]) {
 	targs.period_msec=0;
 	targs.RadarPointer = &ATCRadar;
 	targs.ComputerSystemPointer = &ATCComputerSystem;
+	targs.CommuncationSystemPointer = &ATCCommuncationSystem;
+	targs.OperatorConsolePointer = &ATCOperatorConsole;
 
 
 	pthread_t thread_id;//ID of the thread

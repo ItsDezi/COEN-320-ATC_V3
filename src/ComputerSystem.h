@@ -24,6 +24,7 @@ public:
 
     //pthread to detect alert to operator:
     pthread_t detectViolationsThread;
+    pthread_t handlingCommandsThread;
 
     // //DataDisplay Instance:
 //    DataDisplay dataDisplay;
@@ -55,6 +56,14 @@ public:
     //Function to calculate the prediction for the next 3 minutes:
     void computeViolationsFor3Minutes(vector<AircraftData> aircraft);
 
+    // Function to run for the handling thread that is responsible for receiving from OC
+    static void* HandlingCommands(void* args);
+
+    // Function that is the server for handling commands thread
+    void CommandsComputerSystemServer(string channelName);
+
+    //Function to send commands to Communication System
+    void ComputerSystem_CommSys_Client(MPData MsgToSend);
 
 
 

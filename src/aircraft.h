@@ -18,20 +18,21 @@ using namespace std;
 class aircraft {
 public:
 	int ID;
-	//cTimer clk;
 	bool arrived = false;
-	//thread m_thread;
 	aircraft();
 	pthread_t thread;
+	pthread_t receivingCommandsThread;
 	virtual ~aircraft();
 	AircraftData data;
 	double prevClock;
 	aircraft(AircraftData dataTing);
 	void test_print();
 	static void* updatePosition(void* args);
-	void changeSpeed();
+	void changeSpeed(int, int);
 	void AC_Client(MPData);
 	static void* run(void *a);
+	static void* ReceivingCommandsRoutine(void* args);
+	void ReceivingCommandsServer(string channelName);
 
 };
 

@@ -8,7 +8,8 @@
 #include <sys/dispatch.h>
 #include "AircraftData.h"
 #include <vector>
-
+#include "Command.h"
+#include <iostream>
 using namespace std;
 
 
@@ -17,6 +18,7 @@ struct MPData{
 	string channelName;
 	AircraftData aircraft;
 	vector<AircraftData> aircraftsInRange;
+	Command command;
 };
 
 #endif
